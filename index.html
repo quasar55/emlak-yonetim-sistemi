@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emlak Yönetim Sistemi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 400px; }
+        .login-box h1 { text-align: center; margin-bottom: 2rem; color: #333; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 500; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 16px; }
+        .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        
+        .main-app { display: none; min-height: 100vh; background: #f8f9fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1rem 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; }
+        .nav-buttons { display: flex; gap: 0.5rem; }
+        .nav-btn { padding: 0.75rem 1.5rem; border: none; border-radius: 25px; background: rgba(255,255,255,0.2); color: white; cursor: pointer; transition: all 0.3s; font-weight: 500; }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+        .nav-btn.active { background: white; color: #667eea; font-weight: bold; }
+        .user-info { display: flex; align-items: center; gap: 1rem; color: white; font-weight: 500; }
+        .logout-btn { padding: 0.75rem 1.5rem; border: none; border-radius: 25px; background: #ff4757; color: white; cursor: pointer; transition: all 0.3s; font-weight: 500; }
+        
+        .content { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center; }
+        .stat-number { font-size: 2.5rem; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; margin-top: 0.5rem; }
+        
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .add-btn { padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .item-card { background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .item-actions { display: flex; gap: 0.5rem; }
+        .edit-btn, .delete-btn { padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .edit-btn { background: #ffc107; color: #333; }
+        .delete-btn { background: #dc3545; color: white; }
+        .item-title { font-size: 1.25rem; font-weight: bold; color: #333; margin-bottom: 0.5rem; }
+        .item-info { color: #666; font-size: 0.9rem; line-height: 1.4; }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
+        .modal-content { background-color: white; margin: 20px auto; padding: 0; border-radius: 15px; width: 500px; max-width: calc(100% - 40px); max-height: calc(100vh - 40px); overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid #eee; position: sticky; top: 0; background: white; border-radius: 15px 15px 0 0; }
+        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal-body { padding: 2rem; }
+        .modal-form { display: flex; flex-direction: column; gap: 1rem; }
+        .modal-form input, .modal-form textarea, .modal-form select { padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 16px; }
+        .modal-form textarea { resize: vertical; min-height: 100px; }
+        .modal-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+        .save-btn { padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .cancel-btn { padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 8px; transform: translateX(400px); transition: transform 0.3s; z-index: 1001; }
+        .toast.show { transform: translateX(0); }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
+            <h1>Emlak Yönetim Sistemi</h1>
+            <div class="form-group">
+                <label>Ad Soyad</label>
+                <input type="text" id="username">
+            </div>
+            <div class="form-group">
+                <label>Şirket</label>
+                <input type="text" id="company">
+            </div>
+            <div class="form-group">
+                <label>Telefon</label>
+                <input type="tel" id="phone">
+            </div>
+            <button class="login-btn" onclick="startApp()">Giriş Yap</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="main-app">
+        <header class="header">
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showTab('dashboard', this)">Dashboard</button>
+                <button class="nav-btn" onclick="showTab('clients', this)">Müşteriler</button>
+                <button class="nav-btn" onclick="showTab('properties', this)">İlanlar</button>
+                <button class="nav-btn" onclick="showTab('tasks', this)">Görevler</button>
+                <button class="nav-btn" onclick="showTab('notes', this)">Notlar</button>
+            </div>
+            <div class="user-info">
+                <span id="user-name"></span>
+                <button class="logout-btn" onclick="exitApp()">Çıkış</button>
+            </div>
+        </header>
+
+        <main class="content">
+            <section id="dashboard" class="section active">
+                <h2>Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="clientCount">0</div><div class="stat-label">Müşteri</div></div>
+                    <div class="stat-card"><div class="stat-number" id="propertyCount">0</div><div class="stat-label">İlan</div></div>
+                    <div class="stat-card"><div class="stat-number" id="taskCount">0</div><div class="stat-label">Görev</div></div>
+                    <div class="stat-card"><div class="stat-number" id="noteCount">0</div><div class="stat-label">Not</div></div>
+                </div>
+            </section>
+
+            <section id="clients" class="section">
+                <div class="page-header">
+                    <h2>Müşteriler</h2>
+                    <button class="add-btn" onclick="newItem('client')">+ Müşteri Ekle</button>
+                </div>
+                <div id="clients-grid" class="items-grid"></div>
+            </section>
+
+            <section id="properties" class="section">
+                <div class="page-header">
+                    <h2>İlanlar</h2>
+                    <button class="add-btn" onclick="newItem('property')">+ İlan Ekle</button>
+                </div>
+                <div id="properties-grid" class="items-grid"></div>
+            </section>
+
+            <section id="tasks" class="section">
+                <div class="page-header">
+                    <h2>Görevler</h2>
+                    <button class="add-btn" onclick="newItem('task')">+ Görev Ekle</button>
+                </div>
+                <div id="tasks-grid" class="items-grid"></div>
+            </section>
+
+            <section id="notes" class="section">
+                <div class="page-header">
+                    <h2>Notlar</h2>
+                    <button class="add-btn" onclick="newItem('note')">+ Not Ekle</button>
+                </div>
+                <div id="notes-grid" class="items-grid"></div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Ekle</h2>
+                <span class="close" onclick="hideModal()">&times;</span>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        var appStorage = {
+            user: null,
+            clients: [],
+            properties: [],
+            tasks: [],
+            notes: []
+        };
+        var editing = null;
+
+        function startApp() {
+            var name = document.getElementById('username').value.trim();
+            var company = document.getElementById('company').value.trim();  
+            var phone = document.getElementById('phone').value.trim();
+            
+            if (!name || !company || !phone) {
+                alert('Lütfen tüm alanları doldurun!');
+                return;
+            }
+            
+            appStorage.user = {name: name, company: company, phone: phone};
+            document.getElementById('user-name').textContent = name;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            loadData();
+            refreshStats();
+            notify('Hoş geldiniz!');
+        }
+
+        function showTab(tab, btn) {
+            document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+            document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById(tab).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function newItem(type, id) {
+            editing = {type: type, id: id};
+            var modal = document.getElementById('modal');
+            var title = document.getElementById('modal-title');
+            var body = document.getElementById('modal-body');
+            
+            if (type === 'client') {
+                title.textContent = id ? 'Müşteri Düzenle' : 'Yeni Müşteri';
+                body.innerHTML = '<div class="modal-form">' +
+                    '<input type="text" id="f-name" placeholder="Ad Soyad">' +
+                    '<input type="tel" id="f-phone" placeholder="Telefon">' +
+                    '<input type="email" id="f-email" placeholder="Email">' +
+                    '<textarea id="f-notes" placeholder="Notlar"></textarea>' +
+                    '<div class="modal-buttons">' +
+                        '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
+                        '<button class="save-btn" onclick="saveItem()">Kaydet</button>' +
+                    '</div></div>';
+                    
+                if (id) {
+                    var item = appStorage.clients.find(function(c) { return c.id === id; });
+                    if (item) {
+                        setTimeout(function() {
+                            document.getElementById('f-name').value = item.name || '';
+                            document.getElementById('f-phone').value = item.phone || '';
+                            document.getElementById('f-email').value = item.email || '';
+                            document.getElementById('f-notes').value = item.notes || '';
+                        }, 10);
+                    }
+                }
+            } else if (type === 'property') {
+                title.textContent = id ? 'İlan Düzenle' : 'Yeni İlan';
+                body.innerHTML = '<div class="modal-form">' +
+                    '<input type="text" id="f-title" placeholder="İlan Başlığı">' +
+                    '<select id="f-type"><option value="">Tip Seçin</option><option value="Daire">Daire</option><option value="Villa">Villa</option><option value="Ofis">Ofis</option><option value="Dükkan">Dükkan</option></select>' +
+                    '<input type="text" id="f-location" placeholder="Konum">' +
+                    '<input type="number" id="f-price" placeholder="Fiyat">' +
+                    '<textarea id="f-description" placeholder="Açıklama"></textarea>' +
+                    '<div class="modal-buttons">' +
+                        '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
+                        '<button class="save-btn" onclick="saveItem()">Kaydet</button>' +
+                    '</div></div>';
+                    
+                if (id) {
+                    var item = appStorage.properties.find(function(p) { return p.id === id; });
+                    if (item) {
+                        setTimeout(function() {
+                            document.getElementById('f-title').value = item.title || '';
+                            document.getElementById('f-type').value = item.type || '';
+                            document.getElementById('f-location').value = item.location || '';
+                            document.getElementById('f-price').value = item.price || '';
+                            document.getElementById('f-description').value = item.description || '';
+                        }, 10);
+                    }
+                }
+            } else if (type === 'task') {
+                title.textContent = id ? 'Görev Düzenle' : 'Yeni Görev';
+                body.innerHTML = '<div class="modal-form">' +
+                    '<input type="text" id="f-title" placeholder="Görev Başlığı">' +
+                    '<input type="date" id="f-date">' +
+                    '<select id="f-priority"><option value="">Öncelik</option><option value="Düşük">Düşük</option><option value="Orta">Orta</option><option value="Yüksek">Yüksek</option></select>' +
+                    '<textarea id="f-description" placeholder="Açıklama"></textarea>' +
+                    '<div class="modal-buttons">' +
+                        '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
+                        '<button class="save-btn" onclick="saveItem()">Kaydet</button>' +
+                    '</div></div>';
+                    
+                if (id) {
+                    var item = appStorage.tasks.find(function(t) { return t.id === id; });
+                    if (item) {
+                        setTimeout(function() {
+                            document.getElementById('f-title').value = item.title || '';
+                            document.getElementById('f-date').value = item.date || '';
+                            document.getElementById('f-priority').value = item.priority || '';
+                            document.getElementById('f-description').value = item.description || '';
+                        }, 10);
+                    }
+                }
+            } else if (type === 'note') {
+                title.textContent = id ? 'Not Düzenle' : 'Yeni Not';
+                body.innerHTML = '<div class="modal-form">' +
+                    '<input type="text" id="f-title" placeholder="Not Başlığı">' +
+                    '<textarea id="f-content" placeholder="İçerik" style="min-height:150px;"></textarea>' +
+                    '<div class="modal-buttons">' +
+                        '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
+                        '<button class="save-btn" onclick="saveItem()">Kaydet</button>' +
+                    '</div></div>';
+                    
+                if (id) {
+                    var item = appStorage.notes.find(function(n) { return n.id === id; });
+                    if (item) {
+                        setTimeout(function() {
+                            document.getElementById('f-title').value = item.title || '';
+                            document.getElementById('f-content').value = item.content || '';
+                        }, 10);
+                    }
+                }
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function hideModal() {
+            document.getElementById('modal').style.display = 'none';
+            editing = null;
+        }
+
+        function saveItem() {
+            if (!editing) return;
+            var type = editing.type;
+            var id = editing.id;
+            var item = {};
+            
+            if (type === 'client') {
+                item = {
+                    name: document.getElementById('f-name').value.trim(),
+                    phone: document.getElementById('f-phone').value.trim(), 
+                    email: document.getElementById('f-email').value.trim(),
+                    notes: document.getElementById('f-notes').value.trim()
+                };
+                if (!item.name || !item.phone) { alert('Ad ve telefon zorunlu!'); return; }
+            } else if (type === 'property') {
+                item = {
+                    title: document.getElementById('f-title').value.trim(),
+                    type: document.getElementById('f-type').value,
+                    location: document.getElementById('f-location').value.trim(),
+                    price: document.getElementById('f-price').value,
+                    description: document.getElementById('f-description').value.trim()
+                };
+                if (!item.title || !item.type || !item.location || !item.price) { alert('Tüm alanları doldurun!'); return; }
+            } else if (type === 'task') {
+                item = {
+                    title: document.getElementById('f-title').value.trim(),
+                    date: document.getElementById('f-date').value,
+                    priority: document.getElementById('f-priority').value,
+                    description: document.getElementById('f-description').value.trim(),
+                    completed: false
+                };
+                if (!item.title || !item.date || !item.priority) { alert('Tüm alanları doldurun!'); return; }
+            } else if (type === 'note') {
+                item = {
+                    title: document.getElementById('f-title').value.trim(),
+                    content: document.getElementById('f-content').value.trim(),
+                    date: new Date().toLocaleDateString('tr-TR')
+                };
+                if (!item.title || !item.content) { alert('Başlık ve içerik zorunlu!'); return; }
+            }
+            
+            var collection = type + 's';
+            
+            if (id) {
+                for (var i = 0; i < appStorage[collection].length; i++) {
+                    if (appStorage[collection][i].id === id) {
+                        appStorage[collection][i] = Object.assign(item, {id: id});
+                        break;
+                    }
+                }
+            } else {
+                item.id = Date.now();
+                appStorage[collection].push(item);
+            }
+            
+            hideModal();
+            renderAll();
+            refreshStats();
+            storeData();
+            notify('Kaydedildi');
+        }
+
+        function removeItem(type, id) {
+            if (confirm('Silmek istediğinizden emin misiniz?')) {
+                var collection = type + 's';
+                var newArray = [];
+                for (var i = 0; i < appStorage[collection].length; i++) {
+                    if (appStorage[collection][i].id !== id) {
+                        newArray.push(appStorage[collection][i]);
+                    }
+                }
+                appStorage[collection] = newArray;
+                renderAll();
+                refreshStats();
+                storeData();
+                notify('Silindi');
+            }
+        }
+
+        function toggleComplete(id) {
+            for (var i = 0; i < appStorage.tasks.length; i++) {
+                if (appStorage.tasks[i].id === id) {
+                    appStorage.tasks[i].completed = !appStorage.tasks[i].completed;
+                    break;
+                }
+            }
+            drawTasks();
+            storeData();
+        }
+
+        function renderAll() {
+            drawClients();
+            drawProperties(); 
+            drawTasks();
+            drawNotes();
+        }
+
+        function drawClients() {
+            var grid = document.getElementById('clients-grid');
+            var html = '';
+            for (var i = 0; i < appStorage.clients.length; i++) {
+                var c = appStorage.clients[i];
+                html += '<div class="item-card">' +
+                    '<div class="item-header">' +
+                        '<div class="item-title">' + c.name + '</div>' +
+                        '<div class="item-actions">' +
+                            '<button class="edit-btn" onclick="newItem(\'client\', ' + c.id + ')">✏️</button>' +
+                            '<button class="delete-btn" onclick="removeItem(\'client\', ' + c.id + ')">×</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="item-info">' +
+                        '<div><strong>Telefon:</strong> ' + c.phone + '</div>' +
+                        (c.email ? '<div><strong>Email:</strong> ' + c.email + '</div>' : '') +
+                        (c.notes ? '<div><strong>Notlar:</strong> ' + c.notes + '</div>' : '') +
+                    '</div>' +
+                '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function drawProperties() {
+            var grid = document.getElementById('properties-grid');
+            var html = '';
+            for (var i = 0; i < appStorage.properties.length; i++) {
+                var p = appStorage.properties[i];
+                html += '<div class="item-card">' +
+                    '<div class="item-header">' +
+                        '<div class="item-title">' + p.title + '</div>' +
+                        '<div class="item-actions">' +
+                            '<button class="edit-btn" onclick="newItem(\'property\', ' + p.id + ')">✏️</button>' +
+                            '<button class="delete-btn" onclick="removeItem(\'property\', ' + p.id + ')">×</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="item-info">' +
+                        '<div><strong>Tip:</strong> ' + p.type + '</div>' +
+                        '<div><strong>Konum:</strong> ' + p.location + '</div>' +
+                        '<div><strong>Fiyat:</strong> ' + parseInt(p.price).toLocaleString('tr-TR') + ' ₺</div>' +
+                        (p.description ? '<div><strong>Açıklama:</strong> ' + p.description + '</div>' : '') +
+                    '</div>' +
+                '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function drawTasks() {
+            var grid = document.getElementById('tasks-grid');
+            var html = '';
+            for (var i = 0; i < appStorage.tasks.length; i++) {
+                var t = appStorage.tasks[i];
+                var color = t.priority === 'Yüksek' ? '#dc3545' : t.priority === 'Orta' ? '#ffc107' : '#28a745';
+                var style = t.completed ? 'opacity:0.6;text-decoration:line-through;' : '';
+                html += '<div class="item-card" style="' + style + '">' +
+                    '<div class="item-header">' +
+                        '<div class="item-title">' + t.title + '</div>' +
+                        '<div class="item-actions">' +
+                            '<button class="edit-btn" onclick="newItem(\'task\', ' + t.id + ')">✏️</button>' +
+                            '<button class="delete-btn" onclick="removeItem(\'task\', ' + t.id + ')">×</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="item-info">' +
+                        '<div><strong>Tarih:</strong> ' + new Date(t.date).toLocaleDateString('tr-TR') + '</div>' +
+                        '<div><strong>Öncelik:</strong> <span style="color:' + color + '">' + t.priority + '</span></div>' +
+                        (t.description ? '<div><strong>Detay:</strong> ' + t.description + '</div>' : '') +
+                        '<div style="margin-top:10px;"><label><input type="checkbox" ' + (t.completed ? 'checked' : '') + ' onchange="toggleComplete(' + t.id + ')"> Tamamlandı</label></div>' +
+                    '</div>' +
+                '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function drawNotes() {
+            var grid = document.getElementById('notes-grid');
+            var html = '';
+            for (var i = 0; i < appStorage.notes.length; i++) {
+                var n = appStorage.notes[i];
+                html += '<div class="item-card">' +
+                    '<div class="item-header">' +
+                        '<div class="item-title">' + n.title + '</div>' +
+                        '<div class="item-actions">' +
+                            '<button class="edit-btn" onclick="newItem(\'note\', ' + n.id + ')">✏️</button>' +
+                            '<button class="delete-btn" onclick="removeItem(\'note\', ' + n.id + ')">×</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="item-info">' +
+                        '<div><strong>Tarih:</strong> ' + n.date + '</div>' +
+                        '<div style="margin-top:10px;white-space:pre-wrap;">' + n.content + '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function refreshStats() {
+            document.getElementById('clientCount').textContent = appStorage.clients.length;
+            document.getElementById('propertyCount').textContent = appStorage.properties.length;
+            document.getElementById('taskCount').textContent = appStorage.tasks.length;
+            document.getElementById('noteCount').textContent = appStorage.notes.length;
+        }
+
+        function storeData() {
+            try {
+                localStorage.setItem('emlakApp', JSON.stringify(appStorage));
+            } catch (e) {
+                console.error('Kaydetme hatası:', e);
+            }
+        }
+
+        function loadData() {
+            try {
+                var saved = localStorage.getItem('emlakApp');
+                if (saved) {
+                    var data = JSON.parse(saved);
+                    appStorage.clients = data.clients || [];
+                    appStorage.properties = data.properties || [];
+                    appStorage.tasks = data.tasks || [];
+                    appStorage.notes = data.notes || [];
+                    renderAll();
+                }
+            } catch (e) {
+                console.error('Yükleme hatası:', e);
+            }
+        }
+
+        function notify(msg) {
+            var toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(function() { toast.classList.remove('show'); }, 3000);
+        }
+
+        function exitApp() {
+            if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+                storeData();
+                appStorage = { user: null, clients: [], properties: [], tasks: [], notes: [] };
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('username').value = '';
+                document.getElementById('company').value = '';
+                document.getElementById('phone').value = '';
+                notify('Çıkış yapıldı');
+            }
+        }
+
+        window.onclick = function(e) {
+            if (e.target.id === 'modal') hideModal();
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '
+document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') hideModal();
+        });
+
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+                startApp();
+            }
+        });
+
+        console.log('Emlak sistemi hazır');
+    </script>
+</body>
+</html>
