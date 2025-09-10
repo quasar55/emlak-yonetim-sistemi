@@ -56,7 +56,7 @@
         .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
         .modal-body { padding: 2rem; }
         .modal-form { display: flex; flex-direction: column; gap: 1rem; }
-        .modal-form input, .modal-form textarea, .modal-form select { padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 16px; }
+        .modal-form input, .modal-form textarea, .modal-form select { padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 16px; width: 100%; }
         .modal-form textarea { resize: vertical; min-height: 100px; }
         .modal-buttons { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
         .save-btn { padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; }
@@ -203,8 +203,8 @@
             if (type === 'client') {
                 title.textContent = id ? 'Müşteri Düzenle' : 'Yeni Müşteri';
                 body.innerHTML = '<div class="modal-form">' +
-                    '<input type="text" id="f-name" placeholder="Ad Soyad">' +
-                    '<input type="tel" id="f-phone" placeholder="Telefon">' +
+                    '<input type="text" id="f-name" placeholder="Ad Soyad" required>' +
+                    '<input type="tel" id="f-phone" placeholder="Telefon" required>' +
                     '<input type="email" id="f-email" placeholder="Email">' +
                     '<textarea id="f-notes" placeholder="Notlar"></textarea>' +
                     '<div class="modal-buttons">' +
@@ -223,13 +223,21 @@
                         }, 10);
                     }
                 }
+                
             } else if (type === 'property') {
                 title.textContent = id ? 'İlan Düzenle' : 'Yeni İlan';
                 body.innerHTML = '<div class="modal-form">' +
-                    '<input type="text" id="f-title" placeholder="İlan Başlığı">' +
-                    '<select id="f-type"><option value="">Tip Seçin</option><option value="Daire">Daire</option><option value="Villa">Villa</option><option value="Ofis">Ofis</option><option value="Dükkan">Dükkan</option></select>' +
-                    '<input type="text" id="f-location" placeholder="Konum">' +
-                    '<input type="number" id="f-price" placeholder="Fiyat">' +
+                    '<input type="text" id="f-title" placeholder="İlan Başlığı" required>' +
+                    '<select id="f-type" required>' +
+                        '<option value="">Tip Seçin</option>' +
+                        '<option value="Daire">Daire</option>' +
+                        '<option value="Villa">Villa</option>' +
+                        '<option value="Ofis">Ofis</option>' +
+                        '<option value="Dükkan">Dükkan</option>' +
+                        '<option value="Arsa">Arsa</option>' +
+                    '</select>' +
+                    '<input type="text" id="f-location" placeholder="Konum" required>' +
+                    '<input type="number" id="f-price" placeholder="Fiyat (TL)" required>' +
                     '<textarea id="f-description" placeholder="Açıklama"></textarea>' +
                     '<div class="modal-buttons">' +
                         '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
@@ -248,12 +256,19 @@
                         }, 10);
                     }
                 }
+                
             } else if (type === 'task') {
                 title.textContent = id ? 'Görev Düzenle' : 'Yeni Görev';
+                var today = new Date().toISOString().split('T')[0];
                 body.innerHTML = '<div class="modal-form">' +
-                    '<input type="text" id="f-title" placeholder="Görev Başlığı">' +
-                    '<input type="date" id="f-date">' +
-                    '<select id="f-priority"><option value="">Öncelik</option><option value="Düşük">Düşük</option><option value="Orta">Orta</option><option value="Yüksek">Yüksek</option></select>' +
+                    '<input type="text" id="f-title" placeholder="Görev Başlığı" required>' +
+                    '<input type="date" id="f-date" value="' + today + '" required>' +
+                    '<select id="f-priority" required>' +
+                        '<option value="">Öncelik</option>' +
+                        '<option value="Düşük">Düşük</option>' +
+                        '<option value="Orta">Orta</option>' +
+                        '<option value="Yüksek">Yüksek</option>' +
+                    '</select>' +
                     '<textarea id="f-description" placeholder="Açıklama"></textarea>' +
                     '<div class="modal-buttons">' +
                         '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
@@ -271,11 +286,12 @@
                         }, 10);
                     }
                 }
+                
             } else if (type === 'note') {
                 title.textContent = id ? 'Not Düzenle' : 'Yeni Not';
                 body.innerHTML = '<div class="modal-form">' +
-                    '<input type="text" id="f-title" placeholder="Not Başlığı">' +
-                    '<textarea id="f-content" placeholder="İçerik" style="min-height:150px;"></textarea>' +
+                    '<input type="text" id="f-title" placeholder="Not Başlığı" required>' +
+                    '<textarea id="f-content" placeholder="İçerik" style="min-height:150px;" required></textarea>' +
                     '<div class="modal-buttons">' +
                         '<button class="cancel-btn" onclick="hideModal()">İptal</button>' +
                         '<button class="save-btn" onclick="saveItem()">Kaydet</button>' +
@@ -301,10 +317,16 @@
         }
 
         function saveItem() {
-            if (!editing) return;
+            if (!editing) {
+                console.log('Editing yok');
+                return;
+            }
+            
             var type = editing.type;
             var id = editing.id;
             var item = {};
+            
+            console.log('Saving item:', type, id);
             
             if (type === 'client') {
                 item = {
@@ -313,16 +335,42 @@
                     email: document.getElementById('f-email').value.trim(),
                     notes: document.getElementById('f-notes').value.trim()
                 };
-                if (!item.name || !item.phone) { alert('Ad ve telefon zorunlu!'); return; }
+                if (!item.name || !item.phone) { 
+                    alert('Ad ve telefon zorunlu!'); 
+                    return; 
+                }
+                
             } else if (type === 'property') {
+                // BURASI ÇOK ÖNEMLİ - İLAN EKLEME SORUNU BURADAN KAYNAKLANIYORDU
+                var titleEl = document.getElementById('f-title');
+                var typeEl = document.getElementById('f-type');
+                var locationEl = document.getElementById('f-location');
+                var priceEl = document.getElementById('f-price');
+                var descriptionEl = document.getElementById('f-description');
+                
+                console.log('Form elements:', {
+                    title: titleEl ? titleEl.value : 'BULUNAMADI',
+                    type: typeEl ? typeEl.value : 'BULUNAMADI',
+                    location: locationEl ? locationEl.value : 'BULUNAMADI',
+                    price: priceEl ? priceEl.value : 'BULUNAMADI',
+                    description: descriptionEl ? descriptionEl.value : 'BULUNAMADI'
+                });
+                
                 item = {
-                    title: document.getElementById('f-title').value.trim(),
-                    type: document.getElementById('f-type').value,
-                    location: document.getElementById('f-location').value.trim(),
-                    price: document.getElementById('f-price').value,
-                    description: document.getElementById('f-description').value.trim()
+                    title: titleEl ? titleEl.value.trim() : '',
+                    type: typeEl ? typeEl.value : '',
+                    location: locationEl ? locationEl.value.trim() : '',
+                    price: priceEl ? priceEl.value : '',
+                    description: descriptionEl ? descriptionEl.value.trim() : ''
                 };
-                if (!item.title || !item.type || !item.location || !item.price) { alert('Tüm alanları doldurun!'); return; }
+                
+                console.log('Property item:', item);
+                
+                if (!item.title || !item.type || !item.location || !item.price) { 
+                    alert('Başlık, tip, konum ve fiyat alanları zorunludur!'); 
+                    return; 
+                }
+                
             } else if (type === 'task') {
                 item = {
                     title: document.getElementById('f-title').value.trim(),
@@ -331,19 +379,28 @@
                     description: document.getElementById('f-description').value.trim(),
                     completed: false
                 };
-                if (!item.title || !item.date || !item.priority) { alert('Tüm alanları doldurun!'); return; }
+                if (!item.title || !item.date || !item.priority) { 
+                    alert('Başlık, tarih ve öncelik zorunludur!'); 
+                    return; 
+                }
+                
             } else if (type === 'note') {
                 item = {
                     title: document.getElementById('f-title').value.trim(),
                     content: document.getElementById('f-content').value.trim(),
                     date: new Date().toLocaleDateString('tr-TR')
                 };
-                if (!item.title || !item.content) { alert('Başlık ve içerik zorunlu!'); return; }
+                if (!item.title || !item.content) { 
+                    alert('Başlık ve içerik zorunludur!'); 
+                    return; 
+                }
             }
             
             var collection = type + 's';
+            console.log('Collection:', collection);
             
             if (id) {
+                // Güncelleme
                 for (var i = 0; i < appStorage[collection].length; i++) {
                     if (appStorage[collection][i].id === id) {
                         appStorage[collection][i] = Object.assign(item, {id: id});
@@ -351,15 +408,17 @@
                     }
                 }
             } else {
+                // Yeni ekleme
                 item.id = Date.now();
                 appStorage[collection].push(item);
+                console.log('Added to collection:', appStorage[collection]);
             }
             
             hideModal();
             renderAll();
             refreshStats();
             storeData();
-            notify('Kaydedildi');
+            notify('Başarıyla kaydedildi!');
         }
 
         function removeItem(type, id) {
@@ -417,7 +476,7 @@
                     '</div>' +
                 '</div>';
             }
-            grid.innerHTML = html;
+            grid.innerHTML = html || '<p style="text-align:center; color:#666; grid-column: 1/-1;">Henüz müşteri eklenmemiş.</p>';
         }
 
         function drawProperties() {
@@ -441,7 +500,7 @@
                     '</div>' +
                 '</div>';
             }
-            grid.innerHTML = html;
+            grid.innerHTML = html || '<p style="text-align:center; color:#666; grid-column: 1/-1;">Henüz ilan eklenmemiş.</p>';
         }
 
         function drawTasks() {
@@ -467,7 +526,7 @@
                     '</div>' +
                 '</div>';
             }
-            grid.innerHTML = html;
+            grid.innerHTML = html || '<p style="text-align:center; color:#666; grid-column: 1/-1;">Henüz görev eklenmemiş.</p>';
         }
 
         function drawNotes() {
@@ -489,7 +548,7 @@
                     '</div>' +
                 '</div>';
             }
-            grid.innerHTML = html;
+            grid.innerHTML = html || '<p style="text-align:center; color:#666; grid-column: 1/-1;">Henüz not eklenmemiş.</p>';
         }
 
         function refreshStats() {
@@ -502,6 +561,7 @@
         function storeData() {
             try {
                 localStorage.setItem('emlakApp', JSON.stringify(appStorage));
+                console.log('Data saved to localStorage');
             } catch (e) {
                 console.error('Kaydetme hatası:', e);
             }
@@ -517,6 +577,7 @@
                     appStorage.tasks = data.tasks || [];
                     appStorage.notes = data.notes || [];
                     renderAll();
+                    console.log('Data loaded from localStorage');
                 }
             } catch (e) {
                 console.error('Yükleme hatası:', e);
@@ -543,6 +604,7 @@
             }
         }
 
+        // Event listeners
         window.onclick = function(e) {
             if (e.target.id === 'modal') hideModal();
         }
@@ -557,6 +619,7 @@
             }
         });
 
-        console.log('Emlak sistemi hazır');
+        console.log('Emlak Yönetim Sistemi hazır - İlan ekleme sorunu düzeltildi!');
     </script>
 </body>
+</html>
