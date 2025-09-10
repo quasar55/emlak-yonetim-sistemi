@@ -305,18 +305,32 @@
 
     // DEBUG - BU SATIRLARI EKLE
     console.log('Editing:', editing);
-    if (editing.type === 'property') {
-        console.log('Property elements check:');
-        console.log('Title element:', document.getElementById('f-title'));
-        console.log('Type element:', document.getElementById('f-type'));
-        console.log('Location element:', document.getElementById('f-location'));
-        console.log('Price element:', document.getElementById('f-price'));
-        
-        console.log('Values:');
-        console.log('Title:', document.getElementById('f-title').value);
-        console.log('Type:', document.getElementById('f-type').value);
-        console.log('Location:', document.getElementById('f-location').value);
-        console.log('Price:', document.getElementById('f-price').value);
+
+            } else if (type === 'property') {
+    // Elementleri direkt al
+    var titleEl = document.getElementById('f-title');
+    var typeEl = document.getElementById('f-type');
+    var locationEl = document.getElementById('f-location');
+    var priceEl = document.getElementById('f-price');
+    var descEl = document.getElementById('f-description');
+    
+    // Null kontrolü
+    if (!titleEl || !typeEl || !locationEl || !priceEl) {
+        alert('Form elementleri bulunamadı!');
+        return;
+    }
+    
+    item = {
+        title: titleEl.value.trim(),
+        type: typeEl.value,
+        location: locationEl.value.trim(),
+        price: priceEl.value,
+        description: descEl ? descEl.value.trim() : ''
+    };
+    
+    if (!item.title || !item.type || !item.location || !item.price) { 
+        alert('Tüm alanları doldurun!'); 
+        return; 
     }
         
             var type = editing.type;
