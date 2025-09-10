@@ -300,26 +300,47 @@
             editing = null;
         }
 
-        function saveItem() {
-            if (!editing) return;
-
-    // DEBUG - BU SATIRLARI EKLE
-    console.log('Editing:', editing);
-
-            } else if (type === 'property') {
-    // Elementleri direkt al
-    var titleEl = document.getElementById('f-title');
-    var typeEl = document.getElementById('f-type');
-    var locationEl = document.getElementById('f-location');
-    var priceEl = document.getElementById('f-price');
-    var descEl = document.getElementById('f-description');
+       function saveItem() {
+    alert('saveItem çağrıldı - editing: ' + (editing ? editing.type : 'null'));
     
-    // Null kontrolü
-    if (!titleEl || !typeEl || !locationEl || !priceEl) {
-        alert('Form elementleri bulunamadı!');
+    if (!editing) return;
+    var type = editing.type;
+    var id = editing.id;
+    
+    if (type === 'property') {
+        alert('Property kayıt işlemi başladı');
+        
+        var item = {
+            title: document.getElementById('f-title').value,
+            type: document.getElementById('f-type').value,
+            location: document.getElementById('f-location').value,
+            price: document.getElementById('f-price').value,
+            description: document.getElementById('f-description').value
+        };
+        
+        alert('Item oluşturuldu: ' + JSON.stringify(item));
+        
+        if (!item.title || !item.type || !item.location || !item.price) { 
+            alert('Eksik alan var!'); 
+            return; 
+        }
+        
+        item.id = Date.now();
+        appStorage.properties.push(item);
+        
+        alert('Eklendi! Toplam ilan: ' + appStorage.properties.length);
+        
+        hideModal();
+        drawProperties();
+        refreshStats();
+        storeData();
+        notify('İlan eklendi');
         return;
     }
     
+    // Diğer tipler için eski kod...
+    // (müşteri, görev, not kısımlarını aynen kopyala)
+}
     item = {
         title: titleEl.value.trim(),
         type: typeEl.value,
