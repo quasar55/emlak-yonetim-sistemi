@@ -388,7 +388,10 @@
                     item.id = Date.now();
                     window.data.clients.push(item);
                 }
-                
+                } else if (type === 'property') {
+    console.log('Property save başladı');
+    console.log('Title element:', document.getElementById('f-title'));
+    console.log('Type element:', document.getElementById('f-type'));
             } else if (type === 'property') {
                 const title = document.getElementById('input-title').value.trim();
                 const propertyType = document.getElementById('input-type').value;
