@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Eye, X, Check, User, Home, DollarSign, MapPin, Calendar, Phone, Mail, Building, Bed, Bath, Car, Maximize, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Plus, Edit, Trash2, X, Check, User, Home, DollarSign, MapPin, Bed, Bath, Car, Maximize, CheckCircle } from 'lucide-react';
 
-// Types
 interface Property {
   id: number;
   title: string;
@@ -15,7 +14,6 @@ interface Property {
   description: string;
   status: 'available' | 'sold' | 'rented';
   addedDate: string;
-  images: string[];
 }
 
 interface Client {
@@ -29,373 +27,11 @@ interface Client {
   addedDate: string;
 }
 
-// Toast Component
-interface ToastProps {
-  message: string;
-  type: 'success' | 'error' | 'info';
-  onClose: () => void;
-}
-
-const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-
-  return (
-    <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2`}>
-      <CheckCircle size={20} />
-      <span>{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-80">
-        <X size={16} />
-      </button>
-    </div>
-  );
-};
-
-// Modal Component
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}
-
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-        <div className="p-6">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Property Form Component
-interface PropertyFormProps {
-  property?: Property;
-  onSave: (property: Omit<Property, 'id' | 'addedDate'>) => void;
-  onClose: () => void;
-}
-
-const PropertyForm: React.FC<PropertyFormProps> = ({ property, onSave, onClose }) => {
-  const [formData, setFormData] = useState({
-    title: property?.title || '',
-    price: property?.price || 0,
-    location: property?.location || '',
-    type: property?.type || 'apartment',
-    bedrooms: property?.bedrooms || 1,
-    bathrooms: property?.bathrooms || 1,
-    area: property?.area || 0,
-    parking: property?.parking || false,
-    description: property?.description || '',
-    status: property?.status || 'available' as const,
-    images: property?.images || []
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-              type === 'number' ? Number(value) : value
-    }));
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
-          <input
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (₺)</label>
-          <input
-            type="number"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Konum</label>
-          <input
-            type="text"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tür</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="apartment">Daire</option>
-            <option value="house">Müstakil Ev</option>
-            <option value="villa">Villa</option>
-            <option value="office">Ofis</option>
-            <option value="shop">Dükkan</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Yatak Odası</label>
-          <input
-            type="number"
-            name="bedrooms"
-            value={formData.bedrooms}
-            onChange={handleChange}
-            min="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Banyo</label>
-          <input
-            type="number"
-            name="bathrooms"
-            value={formData.bathrooms}
-            onChange={handleChange}
-            min="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Alan (m²)</label>
-          <input
-            type="number"
-            name="area"
-            value={formData.area}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Durum</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="available">Müsait</option>
-            <option value="sold">Satıldı</option>
-            <option value="rented">Kiralandı</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="parking"
-          checked={formData.parking}
-          onChange={handleChange}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label className="ml-2 block text-sm text-gray-900">Otopark Var</label>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      <div className="flex gap-4 pt-4">
-        <button
-          type="submit"
-          className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
-        >
-          <Check className="inline-block w-4 h-4 mr-2" />
-          Kaydet
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-        >
-          İptal
-        </button>
-      </div>
-    </form>
-  );
-};
-
-// Client Form Component
-interface ClientFormProps {
-  client?: Client;
-  onSave: (client: Omit<Client, 'id' | 'addedDate'>) => void;
-  onClose: () => void;
-}
-
-const ClientForm: React.FC<ClientFormProps> = ({ client, onSave, onClose }) => {
-  const [formData, setFormData] = useState({
-    name: client?.name || '',
-    email: client?.email || '',
-    phone: client?.phone || '',
-    type: client?.type || 'buyer' as const,
-    budget: client?.budget || 0,
-    preferences: client?.preferences || ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? Number(value) : value
-    }));
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Ad Soyad</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Müşteri Tipi</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="buyer">Alıcı</option>
-            <option value="seller">Satıcı</option>
-            <option value="renter">Kiracı</option>
-          </select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Bütçe (₺)</label>
-          <input
-            type="number"
-            name="budget"
-            value={formData.budget}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tercihler / Notlar</label>
-        <textarea
-          name="preferences"
-          value={formData.preferences}
-          onChange={handleChange}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      <div className="flex gap-4 pt-4">
-        <button
-          type="submit"
-          className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-200 font-medium"
-        >
-          <Check className="inline-block w-4 h-4 mr-2" />
-          Kaydet
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-        >
-          İptal
-        </button>
-      </div>
-    </form>
-  );
-};
-
-// Main App Component
-const PropertyManagementSystem: React.FC = () => {
+const PropertyManagementSystem = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<'properties' | 'clients'>('properties');
+  const [currentView, setCurrentView] = useState('properties');
   
-  // Properties State
-  const [properties, setProperties] = useState<Property[]>([
+  const [properties, setProperties] = useState([
     {
       id: 1,
       title: "Modern Merkez Dairesi",
@@ -408,13 +44,11 @@ const PropertyManagementSystem: React.FC = () => {
       parking: true,
       description: "Şehir merkezinde modern daire",
       status: "available",
-      addedDate: "2024-01-15",
-      images: []
+      addedDate: "2024-01-15"
     }
   ]);
   
-  // Clients State
-  const [clients, setClients] = useState<Client[]>([
+  const [clients, setClients] = useState([
     {
       id: 1,
       name: "Ahmet Yılmaz",
@@ -427,32 +61,48 @@ const PropertyManagementSystem: React.FC = () => {
     }
   ]);
 
-  // Modal States
   const [propertyModalOpen, setPropertyModalOpen] = useState(false);
   const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<Property | undefined>();
-  const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [editingProperty, setEditingProperty] = useState(null);
+  const [editingClient, setEditingClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState(null);
 
-  // Login Handler
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency: 'TRY',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
+  const showToast = (message, type) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleLogin = () => {
     setIsLoggedIn(true);
     showToast('Başarıyla giriş yapıldı!', 'success');
   };
 
-  // Toast Functions
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ message, type });
-  };
+  const handleSaveProperty = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const propertyData = {
+      title: formData.get('title'),
+      price: Number(formData.get('price')),
+      location: formData.get('location'),
+      type: formData.get('type'),
+      bedrooms: Number(formData.get('bedrooms')),
+      bathrooms: Number(formData.get('bathrooms')),
+      area: Number(formData.get('area')),
+      parking: formData.get('parking') === 'on',
+      description: formData.get('description'),
+      status: formData.get('status')
+    };
 
-  const closeToast = () => {
-    setToast(null);
-  };
-
-  // Property Functions
-  const handleSaveProperty = (propertyData: Omit<Property, 'id' | 'addedDate'>) => {
     if (editingProperty) {
       setProperties(prev => prev.map(p => 
         p.id === editingProperty.id 
@@ -461,7 +111,7 @@ const PropertyManagementSystem: React.FC = () => {
       ));
       showToast('Emlak güncellendi!', 'success');
     } else {
-      const newProperty: Property = {
+      const newProperty = {
         ...propertyData,
         id: Math.max(0, ...properties.map(p => p.id)) + 1,
         addedDate: new Date().toISOString().split('T')[0]
@@ -469,19 +119,31 @@ const PropertyManagementSystem: React.FC = () => {
       setProperties(prev => [...prev, newProperty]);
       showToast('Emlak eklendi!', 'success');
     }
-    setEditingProperty(undefined);
+    
+    setEditingProperty(null);
     setPropertyModalOpen(false);
   };
 
-  const handleDeleteProperty = (id: number) => {
+  const handleDeleteProperty = (id) => {
     if (confirm('Bu emlakı silmek istediğinizden emin misiniz?')) {
       setProperties(prev => prev.filter(p => p.id !== id));
       showToast('Emlak silindi!', 'success');
     }
   };
 
-  // Client Functions
-  const handleSaveClient = (clientData: Omit<Client, 'id' | 'addedDate'>) => {
+  const handleSaveClient = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const clientData = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      type: formData.get('type'),
+      budget: Number(formData.get('budget')),
+      preferences: formData.get('preferences')
+    };
+
     if (editingClient) {
       setClients(prev => prev.map(c => 
         c.id === editingClient.id 
@@ -490,7 +152,7 @@ const PropertyManagementSystem: React.FC = () => {
       ));
       showToast('Müşteri güncellendi!', 'success');
     } else {
-      const newClient: Client = {
+      const newClient = {
         ...clientData,
         id: Math.max(0, ...clients.map(c => c.id)) + 1,
         addedDate: new Date().toISOString().split('T')[0]
@@ -498,18 +160,18 @@ const PropertyManagementSystem: React.FC = () => {
       setClients(prev => [...prev, newClient]);
       showToast('Müşteri eklendi!', 'success');
     }
-    setEditingClient(undefined);
+    
+    setEditingClient(null);
     setClientModalOpen(false);
   };
 
-  const handleDeleteClient = (id: number) => {
+  const handleDeleteClient = (id) => {
     if (confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) {
       setClients(prev => prev.filter(c => c.id !== id));
       showToast('Müşteri silindi!', 'success');
     }
   };
 
-  // Filter Functions
   const filteredProperties = properties.filter(property =>
     property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -522,22 +184,13 @@ const PropertyManagementSystem: React.FC = () => {
     client.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Format Functions
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status) => {
     const statusConfig = {
       available: { label: 'Müsait', class: 'bg-green-100 text-green-800' },
       sold: { label: 'Satıldı', class: 'bg-red-100 text-red-800' },
       rented: { label: 'Kiralandı', class: 'bg-blue-100 text-blue-800' }
     };
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status];
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
         {config.label}
@@ -545,13 +198,13 @@ const PropertyManagementSystem: React.FC = () => {
     );
   };
 
-  const getTypeBadge = (type: string) => {
+  const getTypeBadge = (type) => {
     const typeConfig = {
       buyer: { label: 'Alıcı', class: 'bg-blue-100 text-blue-800' },
       seller: { label: 'Satıcı', class: 'bg-green-100 text-green-800' },
       renter: { label: 'Kiracı', class: 'bg-purple-100 text-purple-800' }
     };
-    const config = typeConfig[type as keyof typeof typeConfig];
+    const config = typeConfig[type];
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
         {config.label}
@@ -559,7 +212,6 @@ const PropertyManagementSystem: React.FC = () => {
     );
   };
 
-  // Login Screen
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center p-4">
@@ -573,7 +225,6 @@ const PropertyManagementSystem: React.FC = () => {
               <label className="block text-gray-600 font-medium mb-3">Ad Soyad</label>
               <input
                 type="text"
-                name="name"
                 className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
                 placeholder="Adınızı girin"
               />
@@ -582,7 +233,6 @@ const PropertyManagementSystem: React.FC = () => {
               <label className="block text-gray-600 font-medium mb-3">Şirket</label>
               <input
                 type="text"
-                name="company"
                 className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
                 placeholder="Şirket adını girin"
               />
@@ -591,16 +241,12 @@ const PropertyManagementSystem: React.FC = () => {
               <label className="block text-gray-600 font-medium mb-3">Telefon</label>
               <input
                 type="tel"
-                name="phone"
                 className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
                 placeholder="Telefon numaranızı girin"
               />
             </div>
             <button
-              onClick={() => {
-                setIsLoggedIn(true);
-                showToast('Başarıyla giriş yapıldı!', 'success');
-              }}
+              onClick={handleLogin}
               className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 px-4 rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 font-medium text-lg mt-8"
             >
               Giriş Yap
@@ -611,10 +257,8 @@ const PropertyManagementSystem: React.FC = () => {
     );
   }
 
-  // Main Dashboard
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -634,7 +278,6 @@ const PropertyManagementSystem: React.FC = () => {
         </div>
       </header>
 
-      {/* Navigation */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
@@ -646,7 +289,6 @@ const PropertyManagementSystem: React.FC = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Building className="inline-block w-4 h-4 mr-2" />
               Emlaklar ({properties.length})
             </button>
             <button
@@ -657,16 +299,13 @@ const PropertyManagementSystem: React.FC = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <User className="inline-block w-4 h-4 mr-2" />
               Müşteriler ({clients.length})
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Add Section */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -681,10 +320,10 @@ const PropertyManagementSystem: React.FC = () => {
           <button
             onClick={() => {
               if (currentView === 'properties') {
-                setEditingProperty(undefined);
+                setEditingProperty(null);
                 setPropertyModalOpen(true);
               } else {
-                setEditingClient(undefined);
+                setEditingClient(null);
                 setClientModalOpen(true);
               }
             }}
@@ -695,14 +334,13 @@ const PropertyManagementSystem: React.FC = () => {
           </button>
         </div>
 
-        {/* Content Grid */}
-        {currentView === 'properties' ? (
+        {currentView === 'properties' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProperties.map((property) => (
               <div key={property.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{property.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{property.title}</h3>
                     {getStatusBadge(property.status)}
                   </div>
                   
@@ -760,7 +398,9 @@ const PropertyManagementSystem: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        )}
+
+        {currentView === 'clients' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredClients.map((client) => (
               <div key={client.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -771,11 +411,9 @@ const PropertyManagementSystem: React.FC = () => {
                 
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center text-gray-600">
-                    <Mail size={16} className="mr-2" />
                     <span className="text-sm">{client.email}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <Phone size={16} className="mr-2" />
                     <span className="text-sm">{client.phone}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
@@ -784,7 +422,7 @@ const PropertyManagementSystem: React.FC = () => {
                   </div>
                   {client.preferences && (
                     <div className="text-gray-600 text-sm bg-gray-50 p-2 rounded-lg">
-                      <p className="line-clamp-2">{client.preferences}</p>
+                      <p>{client.preferences}</p>
                     </div>
                   )}
                 </div>
@@ -813,12 +451,11 @@ const PropertyManagementSystem: React.FC = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {((currentView === 'properties' && filteredProperties.length === 0) || 
           (currentView === 'clients' && filteredClients.length === 0)) && (
           <div className="text-center py-12">
             <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              {currentView === 'properties' ? <Building size={32} className="text-gray-400" /> : <User size={32} className="text-gray-400" />}
+              <Home size={32} className="text-gray-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchTerm ? 'Sonuç bulunamadı' : `Henüz ${currentView === 'properties' ? 'emlak' : 'müşteri'} yok`}
@@ -829,71 +466,262 @@ const PropertyManagementSystem: React.FC = () => {
                 : `İlk ${currentView === 'properties' ? 'emlakınızı' : 'müşterinizi'} ekleyerek başlayın`
               }
             </p>
-            {!searchTerm && (
-              <button
-                onClick={() => {
-                  if (currentView === 'properties') {
-                    setEditingProperty(undefined);
-                    setPropertyModalOpen(true);
-                  } else {
-                    setEditingClient(undefined);
-                    setClientModalOpen(true);
-                  }
-                }}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 font-medium mx-auto"
-              >
-                <Plus size={20} />
-                {currentView === 'properties' ? 'İlk Emlak Ekle' : 'İlk Müşteri Ekle'}
-              </button>
-            )}
           </div>
         )}
       </main>
 
-      {/* Modals */}
-      <Modal
-        isOpen={propertyModalOpen}
-        onClose={() => {
-          setPropertyModalOpen(false);
-          setEditingProperty(undefined);
-        }}
-        title={editingProperty ? 'Emlak Düzenle' : 'Yeni Emlak Ekle'}
-      >
-        <PropertyForm
-          property={editingProperty}
-          onSave={handleSaveProperty}
-          onClose={() => {
-            setPropertyModalOpen(false);
-            setEditingProperty(undefined);
-          }}
-        />
-      </Modal>
+      {propertyModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800">{editingProperty ? 'Emlak Düzenle' : 'Yeni Emlak Ekle'}</h2>
+              <button
+                onClick={() => {
+                  setPropertyModalOpen(false);
+                  setEditingProperty(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <form onSubmit={handleSaveProperty} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
+                    <input
+                      type="text"
+                      name="title"
+                      defaultValue={editingProperty?.title || ''}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (₺)</label>
+                    <input
+                      type="number"
+                      name="price"
+                      defaultValue={editingProperty?.price || 0}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Konum</label>
+                    <input
+                      type="text"
+                      name="location"
+                      defaultValue={editingProperty?.location || ''}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tür</label>
+                    <select
+                      name="type"
+                      defaultValue={editingProperty?.type || 'apartment'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="apartment">Daire</option>
+                      <option value="house">Müstakil Ev</option>
+                      <option value="villa">Villa</option>
+                      <option value="office">Ofis</option>
+                      <option value="shop">Dükkan</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Yatak Odası</label>
+                    <input
+                      type="number"
+                      name="bedrooms"
+                      defaultValue={editingProperty?.bedrooms || 1}
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Banyo</label>
+                    <input
+                      type="number"
+                      name="bathrooms"
+                      defaultValue={editingProperty?.bathrooms || 1}
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Alan (m²)</label>
+                    <input
+                      type="number"
+                      name="area"
+                      defaultValue={editingProperty?.area || 0}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Durum</label>
+                    <select
+                      name="status"
+                      defaultValue={editingProperty?.status || 'available'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="available">Müsait</option>
+                      <option value="sold">Satıldı</option>
+                      <option value="rented">Kiralandı</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="parking"
+                    defaultChecked={editingProperty?.parking || false}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 block text-sm text-gray-900">Otopark Var</label>
+                </div>
 
-      <Modal
-        isOpen={clientModalOpen}
-        onClose={() => {
-          setClientModalOpen(false);
-          setEditingClient(undefined);
-        }}
-        title={editingClient ? 'Müşteri Düzenle' : 'Yeni Müşteri Ekle'}
-      >
-        <ClientForm
-          client={editingClient}
-          onSave={handleSaveClient}
-          onClose={() => {
-            setClientModalOpen(false);
-            setEditingClient(undefined);
-          }}
-        />
-      </Modal>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+                  <textarea
+                    name="description"
+                    defaultValue={editingProperty?.description || ''}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-      {/* Toast */}
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                  >
+                    <Check className="inline-block w-4 h-4 mr-2" />
+                    Kaydet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPropertyModalOpen(false);
+                      setEditingProperty(null);
+                    }}
+                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                  >
+                    İptal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {clientModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800">{editingClient ? 'Müşteri Düzenle' : 'Yeni Müşteri Ekle'}</h2>
+              <button
+                onClick={() => {
+                  setClientModalOpen(false);
+                  setEditingClient(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <form onSubmit={handleSaveClient} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
+                    <input
+                      type="email"
+                      name="email"
+                      defaultValue={editingClient?.email || ''}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      defaultValue={editingClient?.phone || ''}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Müşteri Tipi</label>
+                    <select
+                      name="type"
+                      defaultValue={editingClient?.type || 'buyer'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="buyer">Alıcı</option>
+                      <option value="seller">Satıcı</option>
+                      <option value="renter">Kiracı</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bütçe (₺)</label>
+                    <input
+                      type="number"
+                      name="budget"
+                      defaultValue={editingClient?.budget || 0}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tercihler / Notlar</label>
+                  <textarea
+                    name="preferences"
+                    defaultValue={editingClient?.preferences || ''}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-200 font-medium"
+                  >
+                    <Check className="inline-block w-4 h-4 mr-2" />
+                    Kaydet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setClientModalOpen(false);
+                      setEditingClient(null);
+                    }}
+                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                  >
+                    İptal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={closeToast}
-        />
+        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-green-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2`}>
+          <CheckCircle size={20} />
+          <span>{toast.message}</span>
+        </div>
       )}
     </div>
   );
