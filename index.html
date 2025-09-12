@@ -1,730 +1,907 @@
-import React, { useState } from 'react';
-import { Search, Plus, Edit, Trash2, X, Check, User, Home, DollarSign, MapPin, Bed, Bath, Car, Maximize, CheckCircle } from 'lucide-react';
-
-interface Property {
-  id: number;
-  title: string;
-  price: number;
-  location: string;
-  type: string;
-  bedrooms: number;
-  bathrooms: number;
-  area: number;
-  parking: boolean;
-  description: string;
-  status: 'available' | 'sold' | 'rented';
-  addedDate: string;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  type: 'buyer' | 'seller' | 'renter';
-  budget: number;
-  preferences: string;
-  addedDate: string;
-}
-
-const PropertyManagementSystem = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState('properties');
-  
-  const [properties, setProperties] = useState([
-    {
-      id: 1,
-      title: "Modern Merkez Dairesi",
-      price: 2500000,
-      location: "Kadıköy, İstanbul",
-      type: "apartment",
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 120,
-      parking: true,
-      description: "Şehir merkezinde modern daire",
-      status: "available",
-      addedDate: "2024-01-15"
-    }
-  ]);
-  
-  const [clients, setClients] = useState([
-    {
-      id: 1,
-      name: "Ahmet Yılmaz",
-      email: "ahmet@email.com",
-      phone: "0532 123 45 67",
-      type: "buyer",
-      budget: 3000000,
-      preferences: "3+1 daire, merkezi konum",
-      addedDate: "2024-01-10"
-    }
-  ]);
-
-  const [propertyModalOpen, setPropertyModalOpen] = useState(false);
-  const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [editingProperty, setEditingProperty] = useState(null);
-  const [editingClient, setEditingClient] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [toast, setToast] = useState(null);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
-  const showToast = (message, type) => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    showToast('Başarıyla giriş yapıldı!', 'success');
-  };
-
-  const handleSaveProperty = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    
-    const propertyData = {
-      title: formData.get('title'),
-      price: Number(formData.get('price')),
-      location: formData.get('location'),
-      type: formData.get('type'),
-      bedrooms: Number(formData.get('bedrooms')),
-      bathrooms: Number(formData.get('bathrooms')),
-      area: Number(formData.get('area')),
-      parking: formData.get('parking') === 'on',
-      description: formData.get('description'),
-      status: formData.get('status')
-    };
-
-    if (editingProperty) {
-      setProperties(prev => prev.map(p => 
-        p.id === editingProperty.id 
-          ? { ...propertyData, id: editingProperty.id, addedDate: editingProperty.addedDate }
-          : p
-      ));
-      showToast('Emlak güncellendi!', 'success');
-    } else {
-      const newProperty = {
-        ...propertyData,
-        id: Math.max(0, ...properties.map(p => p.id)) + 1,
-        addedDate: new Date().toISOString().split('T')[0]
-      };
-      setProperties(prev => [...prev, newProperty]);
-      showToast('Emlak eklendi!', 'success');
-    }
-    
-    setEditingProperty(null);
-    setPropertyModalOpen(false);
-  };
-
-  const handleDeleteProperty = (id) => {
-    if (confirm('Bu emlakı silmek istediğinizden emin misiniz?')) {
-      setProperties(prev => prev.filter(p => p.id !== id));
-      showToast('Emlak silindi!', 'success');
-    }
-  };
-
-  const handleSaveClient = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    
-    const clientData = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      type: formData.get('type'),
-      budget: Number(formData.get('budget')),
-      preferences: formData.get('preferences')
-    };
-
-    if (editingClient) {
-      setClients(prev => prev.map(c => 
-        c.id === editingClient.id 
-          ? { ...clientData, id: editingClient.id, addedDate: editingClient.addedDate }
-          : c
-      ));
-      showToast('Müşteri güncellendi!', 'success');
-    } else {
-      const newClient = {
-        ...clientData,
-        id: Math.max(0, ...clients.map(c => c.id)) + 1,
-        addedDate: new Date().toISOString().split('T')[0]
-      };
-      setClients(prev => [...prev, newClient]);
-      showToast('Müşteri eklendi!', 'success');
-    }
-    
-    setEditingClient(null);
-    setClientModalOpen(false);
-  };
-
-  const handleDeleteClient = (id) => {
-    if (confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) {
-      setClients(prev => prev.filter(c => c.id !== id));
-      showToast('Müşteri silindi!', 'success');
-    }
-  };
-
-  const filteredProperties = properties.filter(property =>
-    property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    property.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      available: { label: 'Müsait', class: 'bg-green-100 text-green-800' },
-      sold: { label: 'Satıldı', class: 'bg-red-100 text-red-800' },
-      rented: { label: 'Kiralandı', class: 'bg-blue-100 text-blue-800' }
-    };
-    const config = statusConfig[status];
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  const getTypeBadge = (type) => {
-    const typeConfig = {
-      buyer: { label: 'Alıcı', class: 'bg-blue-100 text-blue-800' },
-      seller: { label: 'Satıcı', class: 'bg-green-100 text-green-800' },
-      renter: { label: 'Kiracı', class: 'bg-purple-100 text-purple-800' }
-    };
-    const config = typeConfig[type];
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 w-full max-w-md">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-8">Emlak Yönetim Sistemi</h1>
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-gray-600 font-medium mb-3">Ad Soyad</label>
-              <input
-                type="text"
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
-                placeholder="Adınızı girin"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-600 font-medium mb-3">Şirket</label>
-              <input
-                type="text"
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
-                placeholder="Şirket adını girin"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-600 font-medium mb-3">Telefon</label>
-              <input
-                type="tel"
-                className="w-full px-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all bg-gray-50"
-                placeholder="Telefon numaranızı girin"
-              />
-            </div>
-            <button
-              onClick={handleLogin}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 px-4 rounded-2xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 font-medium text-lg mt-8"
-            >
-              Giriş Yap
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 w-8 h-8 rounded-lg flex items-center justify-center mr-3">
-                <Home className="text-white" size={20} />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">Emlak Yönetim Sistemi</h1>
-            </div>
-            <button
-              onClick={() => setIsLoggedIn(false)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <User size={20} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setCurrentView('properties')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                currentView === 'properties'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Emlaklar ({properties.length})
-            </button>
-            <button
-              onClick={() => setCurrentView('clients')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                currentView === 'clients'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Müşteriler ({clients.length})
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder={`${currentView === 'properties' ? 'Emlak' : 'Müşteri'} ara...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            onClick={() => {
-              if (currentView === 'properties') {
-                setEditingProperty(null);
-                setPropertyModalOpen(true);
-              } else {
-                setEditingClient(null);
-                setClientModalOpen(true);
-              }
-            }}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 font-medium"
-          >
-            <Plus size={20} />
-            {currentView === 'properties' ? 'Emlak Ekle' : 'Müşteri Ekle'}
-          </button>
-        </div>
-
-        {currentView === 'properties' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((property) => (
-              <div key={property.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{property.title}</h3>
-                    {getStatusBadge(property.status)}
-                  </div>
-                  
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center text-gray-600">
-                      <DollarSign size={16} className="mr-2" />
-                      <span className="font-semibold text-lg text-blue-600">{formatPrice(property.price)}</span>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emlak Yönetim Sistemi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .form-input-wrapper {
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 1.125rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5);
+        }
+        
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+        
+        .nav-container {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            margin-right: 0.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .nav-tab.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        
+        .nav-tab:not(.active) {
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        
+        .nav-tab:not(.active):hover {
+            color: #3b82f6;
+            background: white;
+            border-color: #3b82f6;
+        }
+        
+        .search-section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .price-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+            display: inline-block;
+            box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39);
+        }
+        
+        .status-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 1rem;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-available {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .status-sold {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .status-rented {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .feature-badge {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .btn-edit {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-edit:hover, .btn-delete:hover {
+            transform: translateY(-1px);
+        }
+        
+        .modal-backdrop {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem 1rem 0 0;
+        }
+        
+        .client-type-buyer {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .client-type-seller {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .client-type-renter {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Giriş Sayfası -->
+        <div class="min-h-screen flex items-center justify-center p-6">
+            <div class="login-card rounded-2xl p-8 w-full max-w-md">
+                <!-- Logo ve Başlık -->
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-building text-2xl text-white"></i>
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <MapPin size={16} className="mr-2" />
-                      <span>{property.location}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <Maximize size={16} className="mr-2" />
-                      <span>{property.area} m²</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-gray-600 text-sm">
-                      <div className="flex items-center">
-                        <Bed size={14} className="mr-1" />
-                        <span>{property.bedrooms}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Bath size={14} className="mr-1" />
-                        <span>{property.bathrooms}</span>
-                      </div>
-                      {property.parking && (
-                        <div className="flex items-center">
-                          <Car size={14} className="mr-1" />
-                          <span>Park</span>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Emlak Yönetimi</h1>
+                    <p class="text-gray-600 font-medium">Profesyonel yönetim platformu</p>
+                </div>
+                
+                <!-- Form Alanları -->
+                <div>
+                    <div class="form-group">
+                        <label class="form-label">Ad Soyad</label>
+                        <div class="form-input-wrapper">
+                            <i class="fas fa-user form-icon"></i>
+                            <input type="text" id="name" class="form-input" placeholder="Adınızı ve soyadınızı girin">
                         </div>
-                      )}
                     </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingProperty(property);
-                        setPropertyModalOpen(true);
-                      }}
-                      className="flex-1 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                    >
-                      <Edit size={16} />
-                      Düzenle
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProperty(property.id)}
-                      className="flex-1 bg-red-50 text-red-600 py-2 px-3 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                    >
-                      <Trash2 size={16} />
-                      Sil
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {currentView === 'clients' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClients.map((client) => (
-              <div key={client.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
-                  {getTypeBadge(client.type)}
-                </div>
-                
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center text-gray-600">
-                    <span className="text-sm">{client.email}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <span className="text-sm">{client.phone}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <DollarSign size={16} className="mr-2" />
-                    <span className="text-sm font-medium">{formatPrice(client.budget)}</span>
-                  </div>
-                  {client.preferences && (
-                    <div className="text-gray-600 text-sm bg-gray-50 p-2 rounded-lg">
-                      <p>{client.preferences}</p>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Şirket</label>
+                        <div class="form-input-wrapper">
+                            <i class="fas fa-building form-icon"></i>
+                            <input type="text" id="company" class="form-input" placeholder="Şirket adını girin">
+                        </div>
                     </div>
-                  )}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Telefon</label>
+                        <div class="form-input-wrapper">
+                            <i class="fas fa-phone form-icon"></i>
+                            <input type="tel" id="phone" class="form-input" placeholder="0xxx xxx xx xx">
+                        </div>
+                    </div>
+                    
+                    <button onclick="login()" class="btn-primary w-full mt-6">
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        Sisteme Giriş Yap
+                    </button>
                 </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditingClient(client);
-                      setClientModalOpen(true);
-                    }}
-                    className="flex-1 bg-green-50 text-green-600 py-2 px-3 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                  >
-                    <Edit size={16} />
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClient(client.id)}
-                    className="flex-1 bg-red-50 text-red-600 py-2 px-3 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                  >
-                    <Trash2 size={16} />
-                    Sil
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {((currentView === 'properties' && filteredProperties.length === 0) || 
-          (currentView === 'clients' && filteredClients.length === 0)) && (
-          <div className="text-center py-12">
-            <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Home size={32} className="text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'Sonuç bulunamadı' : `Henüz ${currentView === 'properties' ? 'emlak' : 'müşteri'} yok`}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm 
-                ? 'Arama kriterlerinizi değiştirmeyi deneyin'
-                : `İlk ${currentView === 'properties' ? 'emlakınızı' : 'müşterinizi'} ekleyerek başlayın`
-              }
-            </p>
-          </div>
-        )}
-      </main>
-
-      {propertyModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-2xl font-bold text-gray-800">{editingProperty ? 'Emlak Düzenle' : 'Yeni Emlak Ekle'}</h2>
-              <button
-                onClick={() => {
-                  setPropertyModalOpen(false);
-                  setEditingProperty(null);
-                }}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1">
-              <form onSubmit={handleSaveProperty} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
-                    <input
-                      type="text"
-                      name="title"
-                      defaultValue={editingProperty?.title || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (₺)</label>
-                    <input
-                      type="number"
-                      name="price"
-                      defaultValue={editingProperty?.price || 0}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Konum</label>
-                    <input
-                      type="text"
-                      name="location"
-                      defaultValue={editingProperty?.location || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tür</label>
-                    <select
-                      name="type"
-                      defaultValue={editingProperty?.type || 'apartment'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="apartment">Daire</option>
-                      <option value="house">Müstakil Ev</option>
-                      <option value="villa">Villa</option>
-                      <option value="office">Ofis</option>
-                      <option value="shop">Dükkan</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Yatak Odası</label>
-                    <input
-                      type="number"
-                      name="bedrooms"
-                      defaultValue={editingProperty?.bedrooms || 1}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Banyo</label>
-                    <input
-                      type="number"
-                      name="bathrooms"
-                      defaultValue={editingProperty?.bathrooms || 1}
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Alan (m²)</label>
-                    <input
-                      type="number"
-                      name="area"
-                      defaultValue={editingProperty?.area || 0}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Durum</label>
-                    <select
-                      name="status"
-                      defaultValue={editingProperty?.status || 'available'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="available">Müsait</option>
-                      <option value="sold">Satıldı</option>
-                      <option value="rented">Kiralandı</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="parking"
-                    defaultChecked={editingProperty?.parking || false}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">Otopark Var</label>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
-                  <textarea
-                    name="description"
-                    defaultValue={editingProperty?.description || ''}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
-                  >
-                    <Check className="inline-block w-4 h-4 mr-2" />
-                    Kaydet
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPropertyModalOpen(false);
-                      setEditingProperty(null);
-                    }}
-                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                  >
-                    İptal
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
         </div>
-      )}
-
-      {clientModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-2xl font-bold text-gray-800">{editingClient ? 'Müşteri Düzenle' : 'Yeni Müşteri Ekle'}</h2>
-              <button
-                onClick={() => {
-                  setClientModalOpen(false);
-                  setEditingClient(null);
-                }}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1">
-              <form onSubmit={handleSaveClient} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
-                    <input
-                      type="email"
-                      name="email"
-                      defaultValue={editingClient?.email || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      defaultValue={editingClient?.phone || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Müşteri Tipi</label>
-                    <select
-                      name="type"
-                      defaultValue={editingClient?.type || 'buyer'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="buyer">Alıcı</option>
-                      <option value="seller">Satıcı</option>
-                      <option value="renter">Kiracı</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bütçe (₺)</label>
-                    <input
-                      type="number"
-                      name="budget"
-                      defaultValue={editingClient?.budget || 0}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tercihler / Notlar</label>
-                  <textarea
-                    name="preferences"
-                    defaultValue={editingClient?.preferences || ''}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-200 font-medium"
-                  >
-                    <Check className="inline-block w-4 h-4 mr-2" />
-                    Kaydet
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setClientModalOpen(false);
-                      setEditingClient(null);
-                    }}
-                    className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                  >
-                    İptal
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-green-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2`}>
-          <CheckCircle size={20} />
-          <span>{toast.message}</span>
-        </div>
-      )}
     </div>
-  );
-};
 
-export default PropertyManagementSystem;
+    <script>
+        // Global Variables
+        var currentView = 'properties';
+        var searchTerm = '';
+        var editingId = null;
+
+        var properties = [
+            {
+                id: 1,
+                title: "Modern Merkez Dairesi",
+                price: 2500000,
+                location: "Kadıköy, İstanbul",
+                type: "apartment",
+                bedrooms: 3,
+                bathrooms: 2,
+                area: 120,
+                parking: true,
+                description: "Şehir merkezinde modern daire, deniz manzaralı",
+                status: "available"
+            },
+            {
+                id: 2,
+                title: "Deniz Manzaralı Villa",
+                price: 4500000,
+                location: "Bodrum, Muğla",
+                type: "villa",
+                bedrooms: 4,
+                bathrooms: 3,
+                area: 200,
+                parking: true,
+                description: "Özel plajlı lüks villa",
+                status: "available"
+            },
+            {
+                id: 3,
+                title: "İş Merkezi Ofisi",
+                price: 1800000,
+                location: "Levent, İstanbul",
+                type: "office",
+                bedrooms: 0,
+                bathrooms: 2,
+                area: 85,
+                parking: true,
+                description: "Modern iş merkezi içinde ofis",
+                status: "rented"
+            }
+        ];
+
+        var clients = [
+            {
+                id: 1,
+                name: "Ahmet Yılmaz",
+                email: "ahmet@example.com",
+                phone: "0532 123 45 67",
+                type: "buyer",
+                budget: 3000000,
+                preferences: "3+1 daire, merkezi konum, deniz manzaralı"
+            },
+            {
+                id: 2,
+                name: "Fatma Kaya",
+                email: "fatma@example.com",
+                phone: "0533 234 56 78",
+                type: "seller",
+                budget: 0,
+                preferences: "Villa satışı, Bodrum bölgesi"
+            },
+            {
+                id: 3,
+                name: "Mehmet Özkan",
+                email: "mehmet@example.com",
+                phone: "0534 345 67 89",
+                type: "renter",
+                budget: 15000,
+                preferences: "Aylık ofis kirası, merkezi lokasyon"
+            }
+        ];
+
+        // Helper Functions
+        function formatPrice(price) {
+            return new Intl.NumberFormat('tr-TR', {
+                style: 'currency',
+                currency: 'TRY',
+                minimumFractionDigits: 0
+            }).format(price);
+        }
+
+        function showToast(message, type) {
+            var toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 z-50 p-4 rounded-xl text-white font-semibold shadow-lg transform translate-x-full transition-transform duration-300';
+            toast.className += type === 'success' ? ' bg-green-500' : ' bg-red-500';
+            toast.innerHTML = '<i class="fas fa-' + (type === 'success' ? 'check' : 'times') + '-circle mr-2"></i>' + message;
+            document.body.appendChild(toast);
+            
+            setTimeout(function() { toast.classList.remove('translate-x-full'); }, 100);
+            setTimeout(function() { 
+                toast.classList.add('translate-x-full');
+                setTimeout(function() { if(toast.parentNode) toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        // Main Functions
+        function login() {
+            var name = document.getElementById('name').value;
+            var company = document.getElementById('company').value;
+            var phone = document.getElementById('phone').value;
+
+            if (!name || !company || !phone) {
+                showToast('Lütfen tüm alanları eksiksiz doldurun!', 'error');
+                return;
+            }
+
+            showToast('Başarıyla giriş yapıldı!', 'success');
+            setTimeout(renderDashboard, 1000);
+        }
+
+        function renderDashboard() {
+            document.getElementById('app').innerHTML = 
+                '<div class="min-h-screen bg-gray-50">' +
+                
+                '<!-- Header -->' +
+                '<header class="dashboard-header sticky top-0 z-40">' +
+                '<div class="max-w-7xl mx-auto px-6 py-4">' +
+                '<div class="flex justify-between items-center">' +
+                '<div class="flex items-center">' +
+                '<div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4">' +
+                '<i class="fas fa-building text-white text-xl"></i>' +
+                '</div>' +
+                '<div>' +
+                '<h1 class="text-2xl font-bold text-gray-900">Emlak Yönetim Sistemi</h1>' +
+                '<p class="text-gray-600 text-sm font-medium">Profesyonel emlak yönetimi</p>' +
+                '</div>' +
+                '</div>' +
+                '<button onclick="location.reload()" class="text-red-500 hover:text-red-700 font-semibold px-4 py-2 rounded-lg hover:bg-red-50 transition-all">' +
+                '<i class="fas fa-sign-out-alt mr-2"></i>Çıkış' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</header>' +
+
+                '<!-- Navigation -->' +
+                '<nav class="nav-container sticky top-20 z-30">' +
+                '<div class="max-w-7xl mx-auto px-6 py-4">' +
+                '<div class="flex">' +
+                '<button onclick="switchView(\'properties\')" class="nav-tab ' + (currentView === 'properties' ? 'active' : '') + '">' +
+                '<i class="fas fa-home mr-2"></i>Emlaklar (' + properties.length + ')' +
+                '</button>' +
+                '<button onclick="switchView(\'clients\')" class="nav-tab ' + (currentView === 'clients' ? 'active' : '') + '">' +
+                '<i class="fas fa-users mr-2"></i>Müşteriler (' + clients.length + ')' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</nav>' +
+
+                '<!-- Main Content -->' +
+                '<main class="max-w-7xl mx-auto px-6 py-8">' +
+                
+                '<!-- Search Section -->' +
+                '<div class="search-section">' +
+                '<div class="flex flex-col lg:flex-row gap-4 items-center">' +
+                '<div class="flex-1 relative w-full">' +
+                '<i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>' +
+                '<input type="text" placeholder="' + (currentView === 'properties' ? 'Emlak ara... (başlık, konum, tür)' : 'Müşteri ara... (ad, email, telefon)') + '" value="' + searchTerm + '" oninput="updateSearch(this.value)" class="search-input">' +
+                '</div>' +
+                '<button onclick="openAddModal()" class="btn-primary whitespace-nowrap">' +
+                '<i class="fas fa-plus mr-2"></i>' + (currentView === 'properties' ? 'Yeni Emlak' : 'Yeni Müşteri') +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                
+                '<!-- Content Grid -->' +
+                '<div id="contentGrid"></div>' +
+                '</main>' +
+                
+                '<!-- Modal Container -->' +
+                '<div id="modalContainer"></div>' +
+                '</div>';
+            
+            renderContent();
+        }
+
+        function renderContent() {
+            var grid = document.getElementById('contentGrid');
+            var data = currentView === 'properties' ? properties : clients;
+            var filtered = data.filter(function(item) {
+                var searchText = (item.title || item.name + ' ' + item.email).toLowerCase();
+                return searchText.includes(searchTerm.toLowerCase());
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = 
+                    '<div class="text-center py-16">' +
+                    '<div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">' +
+                    '<i class="fas fa-' + (currentView === 'properties' ? 'home' : 'users') + ' text-3xl text-gray-400"></i>' +
+                    '</div>' +
+                    '<h3 class="text-2xl font-bold text-gray-900 mb-4">' + (searchTerm ? 'Arama sonucu bulunamadı' : 'Henüz ' + (currentView === 'properties' ? 'emlak' : 'müşteri') + ' eklenmemiş') + '</h3>' +
+                    '<p class="text-gray-600 mb-6">' + (searchTerm ? 'Farklı arama terimleri deneyebilirsiniz' : 'İlk ' + (currentView === 'properties' ? 'emlakınızı' : 'müşterinizi') + ' ekleyerek başlayın') + '</p>' +
+                    (!searchTerm ? '<button onclick="openAddModal()" class="btn-primary"><i class="fas fa-plus mr-2"></i>İlk ' + (currentView === 'properties' ? 'Emlakı' : 'Müşteriyi') + ' Ekle</button>' : '') +
+                    '</div>';
+                return;
+            }
+
+            var html = '<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">';
+            
+            for (var i = 0; i < filtered.length; i++) {
+                var item = filtered[i];
+                
+                if (currentView === 'properties') {
+                    html += 
+                        '<div class="card">' +
+                        '<div class="flex justify-between items-start mb-4">' +
+                        '<h3 class="text-xl font-bold text-gray-900 flex-1 mr-3">' + item.title + '</h3>' +
+                        '<span class="status-badge status-' + item.status + '">' + 
+                        (item.status === 'available' ? 'Müsait' : item.status === 'sold' ? 'Satıldı' : 'Kiralandı') + 
+                        '</span>' +
+                        '</div>' +
+                        
+                        '<div class="mb-4">' +
+                        '<div class="price-badge mb-4">' + formatPrice(item.price) + '</div>' +
+                        '</div>' +
+                        
+                        '<div class="space-y-3 mb-4 text-gray-600">' +
+                        '<div class="flex items-center">' +
+                        '<i class="fas fa-map-marker-alt mr-3 text-red-500"></i>' +
+                        '<span class="font-medium">' + item.location + '</span>' +
+                        '</div>' +
+                        '<div class="flex items-center">' +
+                        '<i class="fas fa-expand-arrows-alt mr-3 text-blue-500"></i>' +
+                        '<span class="font-medium">' + item.area + ' m²</span>' +
+                        '</div>' +
+                        '</div>' +
+                        
+                        '<div class="flex flex-wrap gap-2 mb-4">' +
+                        (item.bedrooms > 0 ? '<span class="feature-badge"><i class="fas fa-bed text-indigo-600"></i>' + item.bedrooms + ' yatak</span>' : '') +
+                        (item.bathrooms > 0 ? '<span class="feature-badge"><i class="fas fa-bath text-blue-600"></i>' + item.bathrooms + ' banyo</span>' : '') +
+                        (item.parking ? '<span class="feature-badge"><i class="fas fa-car text-green-600"></i>Otopark</span>' : '') +
+                        '</div>' +
+                        
+                        '<p class="text-gray-600 text-sm mb-4 leading-relaxed">' + item.description + '</p>' +
+                        
+                        '<div class="flex gap-3">' +
+                        '<button onclick="editProperty(' + item.id + ')" class="btn-edit flex-1">' +
+                        '<i class="fas fa-edit mr-2"></i>Düzenle' +
+                        '</button>' +
+                        '<button onclick="deleteProperty(' + item.id + ')" class="btn-delete flex-1">' +
+                        '<i class="fas fa-trash mr-2"></i>Sil' +
+                        '</button>' +
+                        '</div>' +
+                        '</div>';
+                } else {
+                    var clientTypeClass = 'client-type-' + item.type;
+                    html += 
+                        '<div class="card">' +
+                        '<div class="flex justify-between items-start mb-4">' +
+                        '<div class="flex items-center">' +
+                        '<div class="w-12 h-12 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">' +
+                        '<i class="fas fa-user text-white"></i>' +
+                        '</div>' +
+                        '<h3 class="text-xl font-bold text-gray-900">' + item.name + '</h3>' +
+                        '</div>' +
+                        '<span class="status-badge ' + clientTypeClass + '">' + 
+                        (item.type === 'buyer' ? 'Alıcı' : item.type === 'seller' ? 'Satıcı' : 'Kiracı') + 
+                        '</span>' +
+                        '</div>' +
+                        
+                        '<div class="space-y-3 mb-4 text-gray-600">' +
+                        '<div class="flex items-center">' +
+                        '<i class="fas fa-envelope mr-3 text-blue-500"></i>' +
+                        '<a href="mailto:' + item.email + '" class="font-medium hover:text-blue-600">' + item.email + '</a>' +
+                        '</div>' +
+                        '<div class="flex items-center">' +
+                        '<i class="fas fa-phone mr-3 text-green-500"></i>' +
+                        '<a href="tel:' + item.phone + '" class="font-medium hover:text-green-600">' + item.phone + '</a>' +
+                        '</div>' +
+                        (item.budget > 0 ? '<div class="flex items-center"><i class="fas fa-wallet mr-3 text-yellow-500"></i><span class="font-bold">' + formatPrice(item.budget) + '</span></div>' : '') +
+                        '</div>' +
+                        
+                        (item.preferences ? '<div class="bg-gray-50 rounded-xl p-3 mb-4"><h4 class="font-semibold text-gray-900 mb-2"><i class="fas fa-clipboard-list text-indigo-500 mr-2"></i>Tercihler</h4><p class="text-gray-700 text-sm">' + item.preferences + '</p></div>' : '') +
+                        
+                        '<div class="flex gap-3">' +
+                        '<button onclick="editClient(' + item.id + ')" class="btn-edit flex-1">' +
+                        '<i class="fas fa-edit mr-2"></i>Düzenle' +
+                        '</button>' +
+                        '<button onclick="deleteClient(' + item.id + ')" class="btn-delete flex-1">' +
+                        '<i class="fas fa-trash mr-2"></i>Sil' +
+                        '</button>' +
+                        '</div>' +
+                        '</div>';
+                }
+            }
+            
+            html += '</div>';
+            grid.innerHTML = html;
+        }
+
+        function switchView(view) {
+            currentView = view;
+            searchTerm = '';
+            renderDashboard();
+        }
+
+        function updateSearch(value) {
+            searchTerm = value;
+            renderContent();
+        }
+
+        function openAddModal() {
+            editingId = null;
+            if (currentView === 'properties') {
+                openPropertyModal();
+            } else {
+                openClientModal();
+            }
+        }
+
+        function openPropertyModal(property) {
+            document.getElementById('modalContainer').innerHTML = 
+                '<div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">' +
+                '<div class="modal-content max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">' +
+                
+                '<div class="modal-header">' +
+                '<h2 class="text-2xl font-bold">' +
+                '<i class="fas fa-building mr-3"></i>' + (property ? 'Emlak Düzenle' : 'Yeni Emlak Ekle') +
+                '</h2>' +
+                '</div>' +
+                
+                '<form class="p-6" onsubmit="saveProperty(event)">' +
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Emlak Başlığı</label>' +
+                '<input type="text" name="title" placeholder="Modern Merkez Dairesi" value="' + (property ? property.title : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Fiyat (₺)</label>' +
+                '<input type="number" name="price" placeholder="2500000" value="' + (property ? property.price : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Konum</label>' +
+                '<input type="text" name="location" placeholder="Kadıköy, İstanbul" value="' + (property ? property.location : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Emlak Türü</label>' +
+                '<select name="type" class="form-input">' +
+                '<option value="apartment"' + (property && property.type === 'apartment' ? ' selected' : '') + '>Daire</option>' +
+                '<option value="house"' + (property && property.type === 'house' ? ' selected' : '') + '>Müstakil Ev</option>' +
+                '<option value="villa"' + (property && property.type === 'villa' ? ' selected' : '') + '>Villa</option>' +
+                '<option value="office"' + (property && property.type === 'office' ? ' selected' : '') + '>Ofis</option>' +
+                '</select>' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Yatak Odası</label>' +
+                '<input type="number" name="bedrooms" placeholder="3" value="' + (property ? property.bedrooms : 1) + '" min="0" class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Banyo Sayısı</label>' +
+                '<input type="number" name="bathrooms" placeholder="2" value="' + (property ? property.bathrooms : 1) + '" min="0" class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Alan (m²)</label>' +
+                '<input type="number" name="area" placeholder="120" value="' + (property ? property.area : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Durum</label>' +
+                '<select name="status" class="form-input">' +
+                '<option value="available"' + (property && property.status === 'available' ? ' selected' : '') + '>Müsait</option>' +
+                '<option value="sold"' + (property && property.status === 'sold' ? ' selected' : '') + '>Satıldı</option>' +
+                '<option value="rented"' + (property && property.status === 'rented' ? ' selected' : '') + '>Kiralandı</option>' +
+                '</select>' +
+                '</div>' +
+                
+                '</div>' +
+                
+                '<div class="form-group mb-6">' +
+                '<label class="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-lg hover:bg-gray-100">' +
+                '<input type="checkbox" name="parking"' + (property && property.parking ? ' checked' : '') + ' class="w-5 h-5 text-blue-600 rounded">' +
+                '<span class="font-semibold text-gray-800"><i class="fas fa-car text-green-600 mr-2"></i>Otopark Mevcut</span>' +
+                '</label>' +
+                '</div>' +
+                
+                '<div class="form-group mb-6">' +
+                '<label class="form-label">Detaylı Açıklama</label>' +
+                '<textarea name="description" rows="4" placeholder="Emlakın özelliklerini detaylı açıklayın..." class="form-input resize-none">' + (property ? property.description : '') + '</textarea>' +
+                '</div>' +
+                
+                '<div class="flex gap-4">' +
+                '<button type="submit" class="btn-primary flex-1">' +
+                '<i class="fas fa-save mr-2"></i>' + (property ? 'Güncelle' : 'Kaydet') +
+                '</button>' +
+                '<button type="button" onclick="closeModal()" class="btn-delete flex-1">' +
+                '<i class="fas fa-times mr-2"></i>İptal' +
+                '</button>' +
+                '</div>' +
+                '</form>' +
+                '</div>' +
+                '</div>';
+        }
+
+        function openClientModal(client) {
+            document.getElementById('modalContainer').innerHTML = 
+                '<div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-6" onclick="closeModal()">' +
+                '<div class="modal-content max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">' +
+                
+                '<div class="modal-header">' +
+                '<h2 class="text-2xl font-bold">' +
+                '<i class="fas fa-user-plus mr-3"></i>' + (client ? 'Müşteri Düzenle' : 'Yeni Müşteri Ekle') +
+                '</h2>' +
+                '</div>' +
+                
+                '<form class="p-6" onsubmit="saveClient(event)">' +
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Ad Soyad</label>' +
+                '<input type="text" name="name" placeholder="Ahmet Yılmaz" value="' + (client ? client.name : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">E-posta</label>' +
+                '<input type="email" name="email" placeholder="ahmet@example.com" value="' + (client ? client.email : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Telefon</label>' +
+                '<input type="tel" name="phone" placeholder="0532 123 45 67" value="' + (client ? client.phone : '') + '" required class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group">' +
+                '<label class="form-label">Müşteri Tipi</label>' +
+                '<select name="type" class="form-input">' +
+                '<option value="buyer"' + (client && client.type === 'buyer' ? ' selected' : '') + '>Alıcı</option>' +
+                '<option value="seller"' + (client && client.type === 'seller' ? ' selected' : '') + '>Satıcı</option>' +
+                '<option value="renter"' + (client && client.type === 'renter' ? ' selected' : '') + '>Kiracı</option>' +
+                '</select>' +
+                '</div>' +
+                
+                '</div>' +
+                
+                '<div class="form-group mb-6">' +
+                '<label class="form-label">Bütçe (₺)</label>' +
+                '<input type="number" name="budget" placeholder="3000000" value="' + (client ? client.budget : '') + '" class="form-input">' +
+                '</div>' +
+                
+                '<div class="form-group mb-6">' +
+                '<label class="form-label">Tercihler & Notlar</label>' +
+                '<textarea name="preferences" rows="4" placeholder="Müşterinin tercihleri, özel notlar..." class="form-input resize-none">' + (client ? client.preferences : '') + '</textarea>' +
+                '</div>' +
+                
+                '<div class="flex gap-4">' +
+                '<button type="submit" class="btn-primary flex-1">' +
+                '<i class="fas fa-save mr-2"></i>' + (client ? 'Güncelle' : 'Kaydet') +
+                '</button>' +
+                '<button type="button" onclick="closeModal()" class="btn-delete flex-1">' +
+                '<i class="fas fa-times mr-2"></i>İptal' +
+                '</button>' +
+                '</div>' +
+                '</form>' +
+                '</div>' +
+                '</div>';
+        }
+
+        function closeModal() {
+            document.getElementById('modalContainer').innerHTML = '';
+            editingId = null;
+        }
+
+        function saveProperty(event) {
+            event.preventDefault();
+            var form = new FormData(event.target);
+            var data = {
+                title: form.get('title'),
+                price: parseInt(form.get('price')),
+                location: form.get('location'),
+                type: form.get('type'),
+                bedrooms: parseInt(form.get('bedrooms')),
+                bathrooms: parseInt(form.get('bathrooms')),
+                area: parseInt(form.get('area')),
+                parking: form.get('parking') === 'on',
+                description: form.get('description'),
+                status: form.get('status')
+            };
+
+            if (editingId) {
+                for (var i = 0; i < properties.length; i++) {
+                    if (properties[i].id === editingId) {
+                        properties[i] = Object.assign({ id: editingId }, data);
+                        break;
+                    }
+                }
+                showToast('Emlak başarıyla güncellendi!', 'success');
+            } else {
+                data.id = Math.max.apply(Math, properties.map(function(p) { return p.id; })) + 1;
+                properties.push(data);
+                showToast('Yeni emlak başarıyla eklendi!', 'success');
+            }
+            
+            closeModal();
+            renderContent();
+        }
+
+        function saveClient(event) {
+            event.preventDefault();
+            var form = new FormData(event.target);
+            var data = {
+                name: form.get('name'),
+                email: form.get('email'),
+                phone: form.get('phone'),
+                type: form.get('type'),
+                budget: parseInt(form.get('budget')) || 0,
+                preferences: form.get('preferences')
+            };
+
+            if (editingId) {
+                for (var i = 0; i < clients.length; i++) {
+                    if (clients[i].id === editingId) {
+                        clients[i] = Object.assign({ id: editingId }, data);
+                        break;
+                    }
+                }
+                showToast('Müşteri başarıyla güncellendi!', 'success');
+            } else {
+                data.id = Math.max.apply(Math, clients.map(function(c) { return c.id; })) + 1;
+                clients.push(data);
+                showToast('Yeni müşteri başarıyla eklendi!', 'success');
+            }
+            
+            closeModal();
+            renderContent();
+        }
+
+        function editProperty(id) {
+            editingId = id;
+            var property = properties.find(function(p) { return p.id === id; });
+            openPropertyModal(property);
+        }
+
+        function editClient(id) {
+            editingId = id;
+            var client = clients.find(function(c) { return c.id === id; });
+            openClientModal(client);
+        }
+
+        function deleteProperty(id) {
+            if (confirm('Bu emlakı silmek istediğinizden emin misiniz?')) {
+                properties = properties.filter(function(p) { return p.id !== id; });
+                showToast('Emlak başarıyla silindi!', 'success');
+                renderContent();
+            }
+        }
+
+        function deleteClient(id) {
+            if (confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) {
+                clients = clients.filter(function(c) { return c.id !== id; });
+                showToast('Müşteri başarıyla silindi!', 'success');
+                renderContent();
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var modal = document.getElementById('modalContainer');
+                if (modal && modal.innerHTML.trim() !== '') {
+                    closeModal();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
